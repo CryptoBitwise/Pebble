@@ -41,7 +41,7 @@ export default function SplashScreen({ onAnimationComplete }: SplashScreenProps)
         setTimeout(() => {
             Animated.timing(fadeAnim, {
                 toValue: 0,
-                duration: 500,
+                duration: 300,
                 useNativeDriver: true,
             }).start(() => {
                 onAnimationComplete();

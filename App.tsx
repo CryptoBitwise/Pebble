@@ -259,225 +259,227 @@ export default function App() {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle={Platform.OS === 'ios' ? 'light-content' : 'default'} />
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Pebble</Text>
+    <View style={styles.safe}>
+      <SafeAreaView style={styles.safe}>
+        <StatusBar barStyle={Platform.OS === 'ios' ? 'light-content' : 'default'} backgroundColor="#0b0b0c" />
+        <ScrollView contentContainerStyle={styles.container}>
+          <Text style={styles.title}>Pebble</Text>
 
-        <ProgressRing progress={progress} remaining={remaining} budget={dailyBudget} currencySymbol={currency.symbol} />
+          <ProgressRing progress={progress} remaining={remaining} budget={dailyBudget} currencySymbol={currency.symbol} />
 
-        {/* Spending Summary */}
-        <View style={styles.summaryContainer}>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>Avg Daily</Text>
-            <Text style={styles.summaryValue}>{fmtCurrency(spendingSummary.averageDaily, currency.symbol)}</Text>
-          </View>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>This Month</Text>
-            <Text style={styles.summaryValue}>{fmtCurrency(spendingSummary.thisMonthTotal, currency.symbol)}</Text>
-          </View>
-        </View>
-
-        {/* Weekly History */}
-        <WeeklyHistory dailyTotals={last7Totals} budget={dailyBudget} currencySymbol={currency.symbol} />
-
-        {/* Add Expense */}
-        <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>Add Expense</Text>
-          <Pressable onPress={() => setShowSettings(true)} style={styles.editBtn}><Text style={styles.editText}>Settings</Text></Pressable>
-        </View>
-
-        {!showAddExpense ? (
-          <View style={styles.flowRow}>
-            {quickAmounts.map(v => (
-              <Pressable key={v} onPress={() => addAmount(v)} style={styles.chip}>
-                <Text style={styles.chipText}>{fmtCurrencyNoSymbol(v)}</Text>
-              </Pressable>
-            ))}
-            <Pressable onPress={() => setShowAddExpense(true)} style={[styles.chip, { backgroundColor: '#374151' }]}>
-              <Text style={styles.chipText}>+ Custom</Text>
-            </Pressable>
-          </View>
-        ) : (
-          <View style={styles.addExpenseForm}>
-            {/* Amount Input */}
-            <View style={styles.customRow}>
-              <TextInput
-                value={customAmount}
-                onChangeText={setCustomAmount}
-                keyboardType="decimal-pad"
-                placeholder="Amount"
-                placeholderTextColor="#999"
-                style={[styles.input, { flex: 1 }]}
-              />
+          {/* Spending Summary */}
+          <View style={styles.summaryContainer}>
+            <View style={styles.summaryCard}>
+              <Text style={styles.summaryLabel}>Avg Daily</Text>
+              <Text style={styles.summaryValue}>{fmtCurrency(spendingSummary.averageDaily, currency.symbol)}</Text>
             </View>
-
-            {/* Category Selection */}
-            <View style={styles.categoryRow}>
-              <Text style={styles.label}>Category</Text>
-              <View style={styles.categoryGrid}>
-                {categories.map(cat => (
-                  <Pressable
-                    key={cat.id}
-                    onPress={() => setSelectedCategory(cat.id)}
-                    style={[
-                      styles.categoryChip,
-                      { backgroundColor: selectedCategory === cat.id ? cat.color : '#374151' }
-                    ]}
-                  >
-                    <Text style={styles.categoryIcon}>{cat.icon}</Text>
-                    <Text style={styles.categoryText}>{cat.name}</Text>
-                  </Pressable>
-                ))}
-              </View>
+            <View style={styles.summaryCard}>
+              <Text style={styles.summaryLabel}>This Month</Text>
+              <Text style={styles.summaryValue}>{fmtCurrency(spendingSummary.thisMonthTotal, currency.symbol)}</Text>
             </View>
+          </View>
 
-            {/* Note Input */}
-            <View style={styles.customRow}>
-              <TextInput
-                value={expenseNote}
-                onChangeText={setExpenseNote}
-                placeholder="Note (optional)"
-                placeholderTextColor="#999"
-                style={[styles.input, { flex: 1 }]}
-              />
-            </View>
+          {/* Weekly History */}
+          <WeeklyHistory dailyTotals={last7Totals} budget={dailyBudget} currencySymbol={currency.symbol} />
 
-            {/* Action Buttons */}
-            <View style={styles.actionButtonsRow}>
-              <Pressable
-                onPress={() => {
-                  setShowAddExpense(false);
-                  setCustomAmount('');
-                  setExpenseNote('');
-                }}
-                style={styles.secondaryBtn}
-              >
-                <Text style={styles.secondaryText}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  const parsed = parseFloat(customAmount.replace(',', '.'));
-                  if (isNaN(parsed) || parsed <= 0) return;
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  addAmount(parsed, selectedCategory, expenseNote);
-                }}
-                style={[styles.primaryBtn, { opacity: customAmount ? 1 : 0.6 }]}
-              >
-                <Text style={styles.primaryText}>Add Expense</Text>
+          {/* Add Expense */}
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Add Expense</Text>
+            <Pressable onPress={() => setShowSettings(true)} style={styles.editBtn}><Text style={styles.editText}>Settings</Text></Pressable>
+          </View>
+
+          {!showAddExpense ? (
+            <View style={styles.flowRow}>
+              {quickAmounts.map(v => (
+                <Pressable key={v} onPress={() => addAmount(v)} style={styles.chip}>
+                  <Text style={styles.chipText}>{fmtCurrencyNoSymbol(v)}</Text>
+                </Pressable>
+              ))}
+              <Pressable onPress={() => setShowAddExpense(true)} style={[styles.chip, { backgroundColor: '#374151' }]}>
+                <Text style={styles.chipText}>+ Custom</Text>
               </Pressable>
             </View>
-          </View>
-        )}
-
-        {/* Today list */}
-        <Text style={styles.sectionTitle}>Today</Text>
-        {todayEntries.length === 0 ? (
-          <Text style={styles.emptyText}>No expenses yet. Tap a chip or add a custom.</Text>
-        ) : (
-          <FlatList
-            data={[...todayEntries].sort((a, b) => b.timestamp - a.timestamp)}
-            keyExtractor={item => item.id}
-            renderItem={({ item }) => {
-              const category = categories.find(cat => cat.id === item.category) || categories[0];
-              return (
-                <View style={styles.expenseRow}>
-                  <View style={styles.expenseLeft}>
-                    <View style={[styles.categoryDot, { backgroundColor: category.color }]} />
-                    <View style={styles.expenseDetails}>
-                      <Text style={styles.rowText}>{fmtCurrency(item.amount, currency.symbol)}</Text>
-                      {item.note ? <Text style={styles.expenseNote}>{item.note}</Text> : null}
-                    </View>
-                  </View>
-                  <View style={styles.expenseRight}>
-                    <Text style={styles.categoryName}>{category.icon} {category.name}</Text>
-                    <Text style={styles.rowSub}>{new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
-                  </View>
-                  <Pressable
-                    onPress={() => deleteExpense(item.id)}
-                    style={styles.deleteBtn}
-                  >
-                    <Text style={styles.deleteText}>🗑️</Text>
-                  </Pressable>
-                </View>
-              );
-            }}
-            scrollEnabled={false}
-          />
-        )}
-
-        {/* Actions */}
-        <View style={styles.actionsContainer}>
-          <View style={styles.actionsRow}>
-            <Pressable onPress={clearToday} style={[styles.secondaryBtn, styles.dangerBtn]}><Text style={styles.secondaryText}>Clear Today</Text></Pressable>
-          </View>
-          <View style={styles.exportRow}>
-            <Pressable onPress={() => exportData('csv')} style={styles.exportBtn}><Text style={styles.exportText}>📊 Export CSV</Text></Pressable>
-            <Pressable onPress={() => exportData('json')} style={styles.exportBtn}><Text style={styles.exportText}>📄 Export JSON</Text></Pressable>
-          </View>
-        </View>
-
-        {/* Settings Sheet (simple inline for single-file demo) */}
-        {showSettings && (
-          <View style={styles.sheetOverlay}>
-            <View style={styles.sheet}>
-              <Text style={styles.sheetTitle}>Settings</Text>
-
-              <Text style={styles.label}>Daily budget</Text>
+          ) : (
+            <View style={styles.addExpenseForm}>
+              {/* Amount Input */}
               <View style={styles.customRow}>
                 <TextInput
-                  value={String(dailyBudget)}
-                  onChangeText={(t) => setDailyBudget(parseFloat(t.replace(',', '.')) || 0)}
+                  value={customAmount}
+                  onChangeText={setCustomAmount}
                   keyboardType="decimal-pad"
+                  placeholder="Amount"
+                  placeholderTextColor="#999"
                   style={[styles.input, { flex: 1 }]}
                 />
-                <Pressable onPress={() => setShowSettings(false)} style={[styles.primaryBtn, { marginLeft: 8 }]}>
-                  <Text style={styles.primaryText}>Save</Text>
-                </Pressable>
               </View>
 
-              <Text style={[styles.label, { marginTop: 12 }]}>Currency</Text>
-              <View style={styles.currencyRow}>
-                {CURRENCY_OPTIONS.map(option => (
-                  <Pressable
-                    key={option.code}
-                    onPress={() => setCurrency(option)}
-                    style={[
-                      styles.currencyChip,
-                      { backgroundColor: currency.code === option.code ? '#2563eb' : '#374151' }
-                    ]}
-                  >
-                    <Text style={styles.currencyText}>{option.symbol} {option.code}</Text>
-                  </Pressable>
-                ))}
+              {/* Category Selection */}
+              <View style={styles.categoryRow}>
+                <Text style={styles.label}>Category</Text>
+                <View style={styles.categoryGrid}>
+                  {categories.map(cat => (
+                    <Pressable
+                      key={cat.id}
+                      onPress={() => setSelectedCategory(cat.id)}
+                      style={[
+                        styles.categoryChip,
+                        { backgroundColor: selectedCategory === cat.id ? cat.color : '#374151' }
+                      ]}
+                    >
+                      <Text style={styles.categoryIcon}>{cat.icon}</Text>
+                      <Text style={styles.categoryText}>{cat.name}</Text>
+                    </Pressable>
+                  ))}
+                </View>
               </View>
 
-              <Text style={[styles.label, { marginTop: 12 }]}>Quick amounts</Text>
-              <View style={styles.flowRow}>
-                {quickAmounts.map(v => (
-                  <View key={v} style={[styles.chip, { flexDirection: 'row', gap: 6 }]}>
-                    <Text style={styles.chipText}>{fmtCurrencyNoSymbol(v)}</Text>
-                    <Pressable onPress={() => removeQuickAmount(v)}><Text style={{ color: '#c00', fontWeight: '700' }}>×</Text></Pressable>
-                  </View>
-                ))}
-              </View>
+              {/* Note Input */}
               <View style={styles.customRow}>
-                <TextInput placeholder="Add amount" placeholderTextColor="#999" keyboardType="decimal-pad" style={[styles.input, { flex: 1 }]} onSubmitEditing={(e) => {
-                  const v = parseFloat(e.nativeEvent.text.replace(',', '.'));
-                  if (v > 0) addQuickAmount(v);
-                }} />
+                <TextInput
+                  value={expenseNote}
+                  onChangeText={setExpenseNote}
+                  placeholder="Note (optional)"
+                  placeholderTextColor="#999"
+                  style={[styles.input, { flex: 1 }]}
+                />
               </View>
 
-              <View style={styles.settingsDoneContainer}>
-                <Pressable onPress={() => setShowSettings(false)} style={[styles.secondaryBtn, { alignSelf: 'flex-end' }]}>
-                  <Text style={styles.secondaryText}>Done</Text>
+              {/* Action Buttons */}
+              <View style={styles.actionButtonsRow}>
+                <Pressable
+                  onPress={() => {
+                    setShowAddExpense(false);
+                    setCustomAmount('');
+                    setExpenseNote('');
+                  }}
+                  style={styles.secondaryBtn}
+                >
+                  <Text style={styles.secondaryText}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    const parsed = parseFloat(customAmount.replace(',', '.'));
+                    if (isNaN(parsed) || parsed <= 0) return;
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    addAmount(parsed, selectedCategory, expenseNote);
+                  }}
+                  style={[styles.primaryBtn, { opacity: customAmount ? 1 : 0.6 }]}
+                >
+                  <Text style={styles.primaryText}>Add Expense</Text>
                 </Pressable>
               </View>
             </View>
+          )}
+
+          {/* Today list */}
+          <Text style={styles.sectionTitle}>Today</Text>
+          {todayEntries.length === 0 ? (
+            <Text style={styles.emptyText}>No expenses yet. Tap a chip or add a custom.</Text>
+          ) : (
+            <FlatList
+              data={[...todayEntries].sort((a, b) => b.timestamp - a.timestamp)}
+              keyExtractor={item => item.id}
+              renderItem={({ item }) => {
+                const category = categories.find(cat => cat.id === item.category) || categories[0];
+                return (
+                  <View style={styles.expenseRow}>
+                    <View style={styles.expenseLeft}>
+                      <View style={[styles.categoryDot, { backgroundColor: category.color }]} />
+                      <View style={styles.expenseDetails}>
+                        <Text style={styles.rowText}>{fmtCurrency(item.amount, currency.symbol)}</Text>
+                        {item.note ? <Text style={styles.expenseNote}>{item.note}</Text> : null}
+                      </View>
+                    </View>
+                    <View style={styles.expenseRight}>
+                      <Text style={styles.categoryName}>{category.icon} {category.name}</Text>
+                      <Text style={styles.rowSub}>{new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+                    </View>
+                    <Pressable
+                      onPress={() => deleteExpense(item.id)}
+                      style={styles.deleteBtn}
+                    >
+                      <Text style={styles.deleteText}>🗑️</Text>
+                    </Pressable>
+                  </View>
+                );
+              }}
+              scrollEnabled={false}
+            />
+          )}
+
+          {/* Actions */}
+          <View style={styles.actionsContainer}>
+            <View style={styles.actionsRow}>
+              <Pressable onPress={clearToday} style={[styles.secondaryBtn, styles.dangerBtn]}><Text style={styles.secondaryText}>Clear Today</Text></Pressable>
+            </View>
+            <View style={styles.exportRow}>
+              <Pressable onPress={() => exportData('csv')} style={styles.exportBtn}><Text style={styles.exportText}>📊 Export CSV</Text></Pressable>
+              <Pressable onPress={() => exportData('json')} style={styles.exportBtn}><Text style={styles.exportText}>📄 Export JSON</Text></Pressable>
+            </View>
           </View>
-        )}
-      </ScrollView>
-    </SafeAreaView>
+
+          {/* Settings Sheet (simple inline for single-file demo) */}
+          {showSettings && (
+            <View style={styles.sheetOverlay}>
+              <View style={styles.sheet}>
+                <Text style={styles.sheetTitle}>Settings</Text>
+
+                <Text style={styles.label}>Daily budget</Text>
+                <View style={styles.customRow}>
+                  <TextInput
+                    value={String(dailyBudget)}
+                    onChangeText={(t) => setDailyBudget(parseFloat(t.replace(',', '.')) || 0)}
+                    keyboardType="decimal-pad"
+                    style={[styles.input, { flex: 1 }]}
+                  />
+                  <Pressable onPress={() => setShowSettings(false)} style={[styles.primaryBtn, { marginLeft: 8 }]}>
+                    <Text style={styles.primaryText}>Save</Text>
+                  </Pressable>
+                </View>
+
+                <Text style={[styles.label, { marginTop: 12 }]}>Currency</Text>
+                <View style={styles.currencyRow}>
+                  {CURRENCY_OPTIONS.map(option => (
+                    <Pressable
+                      key={option.code}
+                      onPress={() => setCurrency(option)}
+                      style={[
+                        styles.currencyChip,
+                        { backgroundColor: currency.code === option.code ? '#2563eb' : '#374151' }
+                      ]}
+                    >
+                      <Text style={styles.currencyText}>{option.symbol} {option.code}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+
+                <Text style={[styles.label, { marginTop: 12 }]}>Quick amounts</Text>
+                <View style={styles.flowRow}>
+                  {quickAmounts.map(v => (
+                    <View key={v} style={[styles.chip, { flexDirection: 'row', gap: 6 }]}>
+                      <Text style={styles.chipText}>{fmtCurrencyNoSymbol(v)}</Text>
+                      <Pressable onPress={() => removeQuickAmount(v)}><Text style={{ color: '#c00', fontWeight: '700' }}>×</Text></Pressable>
+                    </View>
+                  ))}
+                </View>
+                <View style={styles.customRow}>
+                  <TextInput placeholder="Add amount" placeholderTextColor="#999" keyboardType="decimal-pad" style={[styles.input, { flex: 1 }]} onSubmitEditing={(e) => {
+                    const v = parseFloat(e.nativeEvent.text.replace(',', '.'));
+                    if (v > 0) addQuickAmount(v);
+                  }} />
+                </View>
+
+                <View style={styles.settingsDoneContainer}>
+                  <Pressable onPress={() => setShowSettings(false)} style={[styles.secondaryBtn, { alignSelf: 'flex-end' }]}>
+                    <Text style={styles.secondaryText}>Done</Text>
+                  </Pressable>
+                </View>
+              </View>
+            </View>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
 
