@@ -7,7 +7,7 @@
 //   expo install expo-haptics
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { SafeAreaView, View, Text, Pressable, TextInput, FlatList, StyleSheet, Alert, Platform, StatusBar, ScrollView } from 'react-native';
+import { SafeAreaView, View, Text, Pressable, TextInput, FlatList, StyleSheet, Alert, Platform, StatusBar, ScrollView, AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import Svg, { Circle } from 'react-native-svg';
@@ -95,8 +95,34 @@ export default function App() {
   const [showAddExpense, setShowAddExpense] = useState<boolean>(false);
   const [currency, setCurrency] = useState<typeof CURRENCY_OPTIONS[0]>(CURRENCY_OPTIONS[0]);
   const [showSplash, setShowSplash] = useState<boolean>(true);
+  const [todayKey, setTodayKey] = useState<string>(() => dateKey(new Date()));
 
-  const todayKey = useMemo(() => dateKey(new Date()), []); // recompute only on mount (we keep app simple)
+  // Update todayKey when date changes
+  useEffect(() => {
+    const updateDate = () => {
+      const newTodayKey = dateKey(new Date());
+      if (newTodayKey !== todayKey) {
+        setTodayKey(newTodayKey);
+      }
+    };
+
+    // Check every minute if date has changed
+    const interval = setInterval(updateDate, 60000);
+
+    // Also check when app comes back to focus (in case user switched apps and came back the next day)
+    const handleAppStateChange = (nextAppState: string) => {
+      if (nextAppState === 'active') {
+        updateDate();
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+    return () => {
+      clearInterval(interval);
+      subscription?.remove();
+    };
+  }, [todayKey]);
   const todayEntries = useMemo(() => book[todayKey] || [], [book, todayKey]);
   const todayTotal = useMemo(() => todayEntries.reduce((acc, e) => acc + e.amount, 0), [todayEntries]);
   const remaining = Math.max(0, dailyBudget - todayTotal);
@@ -265,7 +291,9 @@ export default function App() {
         <ScrollView contentContainerStyle={styles.container}>
           <Text style={styles.title}>Pebble</Text>
 
-          <ProgressRing progress={progress} remaining={remaining} budget={dailyBudget} currencySymbol={currency.symbol} />
+          <View style={styles.progressContainer}>
+            <ProgressRing progress={progress} remaining={remaining} budget={dailyBudget} currencySymbol={currency.symbol} />
+          </View>
 
           {/* Spending Summary */}
           <View style={styles.summaryContainer}>
@@ -493,7 +521,7 @@ function ProgressRing({ progress, remaining, budget, currencySymbol }: { progres
   const color = progress < 0.7 ? '#10b981' : progress < 1 ? '#f59e0b' : '#ef4444'; // green / orange / red
 
   return (
-    <View style={{ alignItems: 'center', marginTop: 8 }}>
+    <View>
       <Svg width={size} height={size}>
         <Circle cx={size / 2} cy={size / 2} r={radius} stroke="#eee" strokeWidth={stroke} fill="none" />
         <Circle
@@ -537,13 +565,13 @@ function SpendingSummary({ averageDaily, thisMonthTotal, currencySymbol }: { ave
 // ---------- Weekly History ----------
 function WeeklyHistory({ dailyTotals, budget, currencySymbol }: { dailyTotals: { date: Date; total: number }[]; budget: number; currencySymbol: string }) {
   return (
-    <View style={{ paddingHorizontal: 16, marginTop: 6, marginBottom: 6 }}>
+    <View style={{ paddingHorizontal: 16, marginTop: 16, marginBottom: 16 }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <Text style={styles.sectionTitle}>This Week</Text>
         {/* optional 7-day sum */}
         <Text style={{ color: '#666', fontSize: 12 }}>{fmtCurrency(dailyTotals.reduce((s, d) => s + d.total, 0), currencySymbol)}</Text>
       </View>
-      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 10, marginTop: 8 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', gap: 10, marginTop: 8 }}>
         {dailyTotals.map(({ date, total }, idx) => {
           const ratio = Math.max(0, Math.min(1, budget > 0 ? total / budget : 0));
           const height = Math.max(6, 80 * ratio);
@@ -563,16 +591,17 @@ function WeeklyHistory({ dailyTotals, budget, currencySymbol }: { dailyTotals: {
 // ---------- Styles ----------
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#0b0b0c' },
-  container: { padding: 16, paddingBottom: 40 },
-  title: { fontSize: 24, fontWeight: '800', color: 'white', marginBottom: 8 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: 'white', marginTop: 8 },
-  sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginTop: 8 },
+  container: { padding: 20, paddingTop: 40, paddingBottom: 60 },
+  title: { fontSize: 24, fontWeight: '800', color: 'white', marginBottom: 20, marginTop: 10 },
+  progressContainer: { alignItems: 'center', justifyContent: 'center', marginVertical: 20 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: 'white', marginTop: 24, marginBottom: 8 },
+  sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginTop: 24, marginBottom: 8 },
   editBtn: { paddingHorizontal: 10, paddingVertical: 6, backgroundColor: '#1f2937', borderRadius: 999 },
   editText: { color: '#93c5fd', fontWeight: '600' },
-  flowRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: 16, marginTop: 8 },
+  flowRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: 16, marginTop: 12 },
   chip: { backgroundColor: '#111827', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999 },
   chipText: { color: 'white', fontWeight: '700' },
-  customRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, marginTop: 8 },
+  customRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, marginTop: 12 },
   input: { flex: 0.6, backgroundColor: '#111827', color: 'white', paddingHorizontal: 12, paddingVertical: Platform.OS === 'ios' ? 12 : 8, borderRadius: 10 },
   primaryBtn: { backgroundColor: '#2563eb', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 10 },
   primaryText: { color: 'white', fontWeight: '700' },
@@ -582,18 +611,18 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 10, borderBottomColor: '#111827', borderBottomWidth: StyleSheet.hairlineWidth },
   rowText: { color: 'white', fontSize: 16, fontWeight: '700' },
   rowSub: { color: '#9ca3af' },
-  actionsContainer: { paddingHorizontal: 16, marginTop: 8 },
+  actionsContainer: { paddingHorizontal: 16, marginTop: 24, marginBottom: 16 },
   actionsRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   exportRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   exportBtn: { backgroundColor: '#1f2937', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, flex: 1 },
   exportText: { color: '#93c5fd', fontWeight: '600', fontSize: 12, textAlign: 'center' },
   dangerBtn: { backgroundColor: '#7f1d1d' },
   sheetOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 16 },
-  sheet: { backgroundColor: '#0b0b0c', borderRadius: 14, padding: 16, borderColor: '#1f2937', borderWidth: 1 },
-  sheetTitle: { color: 'white', fontSize: 20, fontWeight: '800', marginBottom: 8 },
-  label: { color: '#9ca3af', marginBottom: 6 },
-  settingsDoneContainer: { marginTop: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#1f2937' },
-  addExpenseForm: { paddingHorizontal: 16, marginTop: 8 },
+  sheet: { backgroundColor: '#0b0b0c', borderRadius: 14, padding: 24, borderColor: '#1f2937', borderWidth: 1 },
+  sheetTitle: { color: 'white', fontSize: 20, fontWeight: '800', marginBottom: 20 },
+  label: { color: '#9ca3af', marginBottom: 12, marginTop: 16 },
+  settingsDoneContainer: { marginTop: 32, paddingTop: 20, borderTopWidth: 1, borderTopColor: '#1f2937' },
+  addExpenseForm: { paddingHorizontal: 16, marginTop: 16 },
   categoryRow: { marginTop: 12 },
   categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
   categoryChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, gap: 6 },
@@ -609,11 +638,11 @@ const styles = StyleSheet.create({
   categoryName: { color: '#9ca3af', fontSize: 12, fontWeight: '600' },
   deleteBtn: { padding: 8, marginLeft: 8 },
   deleteText: { fontSize: 16 },
-  summaryContainer: { flexDirection: 'row', gap: 12, paddingHorizontal: 16, marginTop: 8, marginBottom: 8 },
+  summaryContainer: { flexDirection: 'row', gap: 12, paddingHorizontal: 16, marginTop: 16, marginBottom: 16 },
   summaryCard: { flex: 1, backgroundColor: '#111827', padding: 12, borderRadius: 10, alignItems: 'center' },
   summaryLabel: { color: '#9ca3af', fontSize: 12, marginBottom: 4 },
   summaryValue: { color: 'white', fontSize: 16, fontWeight: '700' },
-  currencyRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
+  currencyRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
   currencyChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20 },
   currencyText: { color: 'white', fontWeight: '600', fontSize: 12 },
 });
